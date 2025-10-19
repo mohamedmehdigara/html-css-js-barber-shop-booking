@@ -4,73 +4,98 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Sharp Cut - Barber Shop Booking</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
-        <h1>The Sharp Cut</h1>
-        <nav>
-            <ul>
-                <li><a href="#">Home</a></li>
-                <li><a href="#">Services</a></li>
-                <li><a href="#">Book Now</a></li>
-                <li><a href="#">Contact</a></li>
-            </ul>
-        </nav>
+        <h1><i class="fas fa-cut"></i> The Sharp Cut</h1>
     </header>
 
     <section id="booking-section">
         <h2>Book Your Appointment</h2>
+
         <form id="booking-form">
-            <div class="form-group">
-                <label for="name">Name:</label>
-                <input type="text" id="name" name="name" required>
+
+            <div class="step" id="step-1">
+                <h3>Step 1: Choose Service & Barber</h3>
+
+                <div class="form-group">
+                    <label for="service"><i class="fas fa-scissors"></i> Service:</label>
+                    <select id="service" name="service" required>
+                        <option value="">Select a service</option>
+                        </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="barber"><i class="fas fa-user-tie"></i> Barber:</label>
+                    <select id="barber" name="barber" required>
+                        <option value="">Select a barber</option>
+                        </select>
+                </div>
+
+                <div id="service-details" class="details-box hidden">
+                    <p>Price: <span id="detail-price"></span></p>
+                    <p>Duration: <span id="detail-duration"></span></p>
+                </div>
+
+                <button type="button" id="next-step-2" class="btn-primary" disabled>Next</button>
             </div>
-            <div class="form-group">
-                <label for="email">Email:</label>
-                <input type="email" id="email" name="email" required>
+
+            <div class="step hidden" id="step-2">
+                <h3>Step 2: Choose Date & Time</h3>
+
+                <div class="form-group">
+                    <label for="date"><i class="fas fa-calendar-alt"></i> Date:</label>
+                    <input type="date" id="date" name="date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="time"><i class="fas fa-clock"></i> Time Slots:</label>
+                    <div id="time-slots-container">
+                        <p class="placeholder-text">Please select a date to see available times.</p>
+                    </div>
+                </div>
+
+                <button type="button" id="prev-step-1" class="btn-secondary">Previous</button>
+                <button type="button" id="next-step-3" class="btn-primary" disabled>Next</button>
             </div>
-            <div class="form-group">
-                <label for="service">Service:</label>
-                <select id="service" name="service" required>
-                    <option value="">Select a service</option>
-                    <option value="haircut">Haircut</option>
-                    <option value="beard-trim">Beard Trim</option>
-                    <option value="haircut-beard">Haircut & Beard Trim</option>
-                    <option value="hot-towel-shave">Hot Towel Shave</option>
-                </select>
+
+            <div class="step hidden" id="step-3">
+                <h3>Step 3: Your Contact Details</h3>
+
+                <div class="form-group">
+                    <label for="name"><i class="fas fa-user"></i> Name:</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="summary-box">
+                    <h4>Booking Summary</h4>
+                    <p>Barber: <span id="summary-barber"></span></p>
+                    <p>Service: <span id="summary-service"></span></p>
+                    <p>Date: <span id="summary-date"></span> at <span id="summary-time"></span></p>
+                </div>
+
+                <button type="button" id="prev-step-2" class="btn-secondary">Previous</button>
+                <button type="submit" class="btn-confirm">Confirm Booking</button>
             </div>
-            <div class="form-group">
-                <label for="date">Date:</label>
-                <input type="date" id="date" name="date" required>
-            </div>
-            <div class="form-group">
-                <label for="time">Time:</label>
-                <select id="time" name="time" required>
-                    <option value="">Select a time</option>
-                    <option value="10:00">10:00 AM</option>
-                    <option value="10:30">10:30 AM</option>
-                    <option value="11:00">11:00 AM</option>
-                    <option value="11:30">11:30 AM</option>
-                    <option value="14:00">2:00 PM</option>
-                    <option value="14:30">2:30 PM</option>
-                    <option value="15:00">3:00 PM</option>
-                    <option value="15:30">3:30 PM</option>
-                </select>
-            </div>
-            <button type="submit">Book Appointment</button>
+
         </form>
+
         <div id="confirmation-message" class="hidden">
-            <h3>Booking Confirmed!</h3>
-            <p>Thank you for your booking, <span id="customer-name"></span>!</p>
-            <p>Service: <span id="booked-service"></span></p>
-            <p>Date: <span id="booked-date"></span></p>
-            <p>Time: <span id="booked-time"></span></p>
+            <i class="fas fa-check-circle success-icon"></i>
+            <h3>Appointment Confirmed!</h3>
+            <p>Thank you, <span id="customer-name"></span>. We look forward to seeing you!</p>
+            <div class="summary-box">
+                <p><strong>Service:</strong> <span id="booked-service"></span></p>
+                <p><strong>Barber:</strong> <span id="booked-barber"></span></p>
+                <p><strong>Time:</strong> <span id="booked-date"></span> at <span id="booked-time"></span></p>
+            </div>
+            <button onclick="window.location.reload()" class="btn-secondary">Make Another Booking</button>
         </div>
     </section>
 
     <footer>
-        <p>&copy; 2025 The Sharp Cut</p>
+        <p>&copy; 2025 The Sharp Cut | Built with HTML, CSS, & JS</p>
     </footer>
 
     <script src="script.js"></script>

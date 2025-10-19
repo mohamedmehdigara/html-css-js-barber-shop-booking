@@ -1,58 +1,63 @@
+:root {
+    --primary-color: #A0522D; /* Sienna (Barber Theme) */
+    --secondary-color: #333;
+    --success-color: #5cb85c;
+    --background-light: #f8f8f8;
+    --font-color: #222;
+}
+
 body {
-    font-family: sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f4f4f4;
-    color: #333;
+    background-color: var(--background-light);
+    color: var(--font-color);
 }
 
 header {
-    background-color: #333;
+    background-color: var(--primary-color);
     color: white;
-    padding: 1em 0;
+    padding: 1.5em 0;
     text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-nav ul {
-    list-style: none;
-    padding: 0;
+header h1 {
     margin: 0;
-}
-
-nav ul li {
-    display: inline;
-    margin: 0 15px;
-}
-
-nav a {
-    color: white;
-    text-decoration: none;
+    font-size: 2em;
 }
 
 #booking-section {
-    max-width: 600px;
-    margin: 20px auto;
-    padding: 20px;
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 30px;
     background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
-h2 {
+h2, h3 {
     text-align: center;
+    color: var(--secondary-color);
+    margin-bottom: 25px;
+}
+
+.step {
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 8px;
     margin-bottom: 20px;
-    color: #333;
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 label {
     display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-    color: #555;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--secondary-color);
 }
 
 input[type="text"],
@@ -60,47 +65,128 @@ input[type="email"],
 input[type="date"],
 select {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     border: 1px solid #ccc;
-    border-radius: 4px;
+    border-radius: 6px;
     box-sizing: border-box;
+    font-size: 1em;
+    transition: border-color 0.3s;
 }
 
-button[type="submit"] {
-    background-color: #5cb85c;
-    color: white;
-    padding: 10px 15px;
+input:focus, select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Button Styles */
+button {
+    padding: 12px 20px;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 1em;
-    transition: background-color 0.3s ease;
+    margin-right: 10px;
+    transition: background-color 0.3s, opacity 0.3s;
 }
 
-button[type="submit"]:hover {
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+.btn-primary:hover:not(:disabled) {
+    background-color: #8B4513; /* Darker Sienna */
+}
+.btn-secondary {
+    background-color: #ccc;
+    color: var(--font-color);
+}
+.btn-secondary:hover {
+    background-color: #bbb;
+}
+.btn-confirm {
+    background-color: var(--success-color);
+    color: white;
+}
+.btn-confirm:hover {
     background-color: #4cae4c;
 }
 
-#confirmation-message {
-    margin-top: 20px;
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Details and Summary Boxes */
+.details-box, .summary-box {
+    margin-top: 15px;
     padding: 15px;
-    background-color: #dff0d8;
-    border: 1px solid #d6e9c6;
-    color: #3c763d;
+    border: 1px solid #eee;
+    border-left: 5px solid var(--primary-color);
+    background-color: #fffaf0; /* Creamy light background */
     border-radius: 4px;
+}
+.summary-box h4 {
+    margin-top: 0;
+    color: var(--primary-color);
+}
+
+/* Time Slot Display */
+#time-slots-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.time-slot {
+    padding: 8px 12px;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    background-color: white;
+}
+.time-slot:hover {
+    background-color: #f0f0f0;
+}
+.time-slot.selected {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+.time-slot.booked {
+    background-color: #fdd;
+    color: #900;
+    border-color: #f99;
+    cursor: not-allowed;
+    text-decoration: line-through;
+}
+.placeholder-text {
+    color: #888;
+    font-style: italic;
+}
+
+/* Confirmation Message */
+#confirmation-message {
     text-align: center;
+    padding: 30px;
+    background-color: #e6ffe6;
+    border: 1px solid var(--success-color);
+    color: var(--font-color);
+    border-radius: 8px;
+}
+.success-icon {
+    font-size: 3em;
+    color: var(--success-color);
+    margin-bottom: 10px;
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 footer {
     text-align: center;
     padding: 1em 0;
-    background-color: #333;
+    background-color: var(--secondary-color);
     color: white;
-    position: fixed;
-    bottom: 0;
-    width: 100%;
+    margin-top: 40px;
 }
