@@ -1,16 +1,16 @@
 document.addEventListener('DOMContentLoaded', function() {
     // --- DATA SIMULATION ---
     const SERVICES = [
-        { id: 'haircut', name: 'Standard Haircut', price: 30, duration: 45 },
-        { id: 'beard-trim', name: 'Beard Trim', price: 20, duration: 30 },
-        { id: 'haircut-beard', name: 'Haircut & Beard Trim', price: 50, duration: 75 },
-        { id: 'shave', name: 'Hot Towel Shave', price: 40, duration: 60 }
+        { id: 'haircut', name: 'Standard Haircut', price: 30, duration: 45, tags: ['cut', 'classic'] },
+        { id: 'beard-trim', name: 'Beard Trim', price: 20, duration: 30, tags: ['beard', 'styling'] },
+        { id: 'haircut-beard', name: 'Haircut & Beard Trim', price: 50, duration: 75, tags: ['cut', 'beard'] },
+        { id: 'shave', name: 'Hot Towel Shave', price: 40, duration: 60, tags: ['shave'] }
     ];
 
     const BARBERS = [
-        { id: 'albert', name: 'Albert', shift: ['09:00', '17:00'], bio: "Albert is our master of fades and classic cuts. 10 years experience." },
-        { id: 'ben', name: 'Ben', shift: ['10:00', '18:00'], bio: "Ben specializes in modern styling and detailed beard shaping." },
-        { id: 'charles', name: 'Charles', shift: ['11:00', '19:00'], bio: "Charles is known for his signature hot towel shaves and artistic designs." }
+        { id: 'albert', name: 'Albert', shift: ['09:00', '17:00'], bio: "Albert is our master of fades and classic cuts. 10 years experience.", specialties: ['cut', 'classic'] },
+        { id: 'ben', name: 'Ben', shift: ['10:00', '18:00'], bio: "Ben specializes in modern styling and detailed beard shaping.", specialties: ['cut', 'beard', 'styling'] },
+        { id: 'charles', name: 'Charles', shift: ['11:00', '19:00'], bio: "Charles is known for his signature hot towel shaves and artistic designs.", specialties: ['shave', 'classic'] }
     ];
 
     // Simulated Bookings: (BarberID, Date, Time)
@@ -20,15 +20,18 @@ document.addEventListener('DOMContentLoaded', function() {
     ];
     
     // CONSTANTS
-    const BOOKING_BUFFER_MINUTES = 60; // Must book at least 60 minutes in the future
+    const BOOKING_BUFFER_MINUTES = 60;
+    const MAX_BOOKING_DAYS_AHEAD = 30;
 
     // --- DOM Elements ---
+    const body = document.body;
+    const modeToggleBtn = document.getElementById('mode-toggle');
     const bookingForm = document.getElementById('booking-form');
     const stepIndicators = document.querySelectorAll('.indicator');
     const steps = {
         1: document.getElementById('step-1'),
-        2: document:getElementById('step-2'),
-        3: document:getElementById('step-3')
+        2: document.getElementById('step-2'),
+        3: document.getElementById('step-3')
     };
 
     const serviceSelect = document.getElementById('service');
@@ -40,8 +43,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const dayWarning = document.getElementById('day-warning');
     const viewBioBtn = document.getElementById('view-barber-bio');
     const barberModal = document.getElementById('barber-modal');
+    const nameInput = document.getElementById('name');
+    const nameFeedbackIcon = document.getElementById('name-feedback');
+    const submitCheckBtn = document.getElementById('submit-check');
+    const filterHint = document.getElementById('filter-hint');
+    const statusAnnouncer = document.getElementById('status-announcer');
+    
+    // The session timeout modal and buttons are removed from the DOM and script.
 
-    // --- State Management ---
+    // --- State Management & Local Storage ---
     let selectedSlot = null;
     let selectedService = null;
     let selectedBarber = null;
@@ -59,11 +69,81 @@ document.addEventListener('DOMContentLoaded', function() {
         tomorrow.setDate(tomorrow.getDate() + 1);
         return tomorrow.toISOString().split('T')[0];
     }
+    
+    function getMaxDateString() {
+        const maxDate = new Date();
+        maxDate.setDate(maxDate.getDate() + MAX_BOOKING_DAYS_AHEAD);
+        return maxDate.toISOString().split('T')[0];
+    }
+    
+    function announceStatus(message) {
+        statusAnnouncer.textContent = message;
+    }
+
+    // Calculates the estimated end time (Used in Step 3)
+    function calculateEndTime(startTime, durationMinutes) {
+        if (!startTime || !durationMinutes) return '--:--';
+        
+        const [startHour, startMinute] = startTime.split(':').map(Number);
+        
+        // Use a base date for calculation
+        const baseDate = new Date(getTodayDateString()); 
+        baseDate.setHours(startHour, startMinute, 0, 0);
+        
+        const endTimeMs = baseDate.getTime() + durationMinutes * 60000;
+        const endTime = new Date(endTimeMs);
+        
+        return ('0' + endTime.getHours()).slice(-2) + ':' + ('0' + endTime.getMinutes()).slice(-2);
+    }
+
+    // Local Storage Persistence (Simulated Cart)
+    function saveStateToLocalStorage() {
+        const state = {
+            serviceId: serviceSelect.value,
+            barberId: barberSelect.value,
+            date: dateInput.value,
+            time: selectedSlot
+        };
+        localStorage.setItem('barberBookingState', JSON.stringify(state));
+    }
+
+    function loadStateFromLocalStorage() {
+        const savedState = localStorage.getItem('barberBookingState');
+        if (savedState) {
+            const state = JSON.parse(savedState);
+            
+            if (state.barberId) {
+                barberSelect.value = state.barberId;
+                updateBarberSpecialties(state.barberId); 
+            }
+            if (state.serviceId) {
+                serviceSelect.value = state.serviceId;
+            }
+            dateInput.value = state.date;
+            selectedSlot = state.time;
+            
+            updateSelections(true); 
+            
+            if (currentStep === 2 && state.date) {
+                validateDateAndGenerateSlots();
+                setTimeout(() => {
+                    const slotEl = timeContainer.querySelector(`[data-time="${selectedSlot}"]`);
+                    if (slotEl && !slotEl.classList.contains('booked') && !slotEl.classList.contains('disabled')) {
+                        slotEl.classList.add('selected');
+                        nextStep3Btn.disabled = false;
+                    }
+                }, 50);
+            }
+        }
+    }
 
     function setStepIndicator(stepNum) {
         currentStep = stepNum;
         stepIndicators.forEach(indicator => {
             const indicatorStep = parseInt(indicator.dataset.step);
+            
+            indicator.setAttribute('aria-selected', indicatorStep === stepNum);
+            
             indicator.classList.remove('active', 'complete');
             if (indicatorStep === stepNum) {
                 indicator.classList.add('active');
@@ -71,27 +151,47 @@ document.addEventListener('DOMContentLoaded', function() {
                 indicator.classList.add('complete');
             }
         });
+        
+        announceStatus(`Now on step ${stepNum}`);
+    }
+
+    // Dark Mode Toggle
+    function toggleMode() {
+        const isDarkMode = body.classList.toggle('dark-mode');
+        localStorage.setItem('barberAppMode', isDarkMode ? 'dark' : 'light');
+        const modeText = isDarkMode ? 'Light Mode' : 'Dark Mode';
+        modeToggleBtn.innerHTML = isDarkMode 
+            ? '<i class="fas fa-sun"></i> ' + modeText 
+            : '<i class="fas fa-moon"></i> ' + modeText;
+        announceStatus(`Switched to ${modeText}`);
     }
 
     // --- INITIALIZATION ---
+    
+    // Apply saved theme preference
+    if (localStorage.getItem('barberAppMode') === 'dark') {
+        body.classList.add('dark-mode');
+        modeToggleBtn.innerHTML = '<i class="fas fa-sun"></i> Light Mode';
+    } else {
+        body.classList.remove('dark-mode');
+        modeToggleBtn.innerHTML = '<i class="fas fa-moon"></i> Dark Mode';
+    }
+    modeToggleBtn.addEventListener('click', toggleMode);
+
     dateInput.min = getTodayDateString();
+    dateInput.max = getMaxDateString();
 
-    // Populate service dropdown
-    SERVICES.forEach(service => {
-        const option = document.createElement('option');
-        option.value = service.id;
-        option.textContent = `${service.name} ($${service.price} - ${service.duration} min)`;
-        serviceSelect.appendChild(option);
-    });
-
-    // Populate barber dropdown
     BARBERS.forEach(barber => {
         const option = document.createElement('option');
         option.value = barber.id;
         option.textContent = barber.name;
         barberSelect.appendChild(option);
     });
-    setStepIndicator(1); // Initialize step indicator
+    setStepIndicator(1);
+    
+    updateServiceDropdown(SERVICES);
+    
+    loadStateFromLocalStorage();
 
     // --- MODAL LOGIC (Barber Bio) ---
     viewBioBtn.addEventListener('click', () => {
@@ -100,6 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('modal-barber-bio').textContent = selectedBarber.bio;
             document.getElementById('modal-barber-hours').textContent = `${selectedBarber.shift[0]} - ${selectedBarber.shift[1]}`;
             barberModal.classList.remove('hidden');
+            announceStatus(`Viewing profile for ${selectedBarber.name}`);
         }
     });
 
@@ -107,7 +208,6 @@ document.addEventListener('DOMContentLoaded', function() {
         barberModal.classList.add('hidden');
     });
 
-    // Close modal if user clicks outside of it
     window.addEventListener('click', (event) => {
         if (event.target === barberModal) {
             barberModal.classList.add('hidden');
@@ -122,19 +222,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         steps[stepNumber].classList.remove('hidden');
         setStepIndicator(stepNumber);
+        
+        // Set focus for accessibility
+        const firstInput = steps[stepNumber].querySelector('input, select, button:not([disabled])');
+        if (firstInput) {
+            firstInput.focus();
+        }
     }
 
     document.getElementById('next-step-2').addEventListener('click', () => {
         if (!selectedService || !selectedBarber) return;
         showStep(2);
-        selectedSlot = null;
-        // Keep date value, but re-validate
-        if (dateInput.value) {
-            validateDateAndGenerateSlots();
-        } else {
-            timeContainer.innerHTML = '<p class="placeholder-text">Please select a date to see available times.</p>';
-        }
-        nextStep3Btn.disabled = true;
+        validateDateAndGenerateSlots();
     });
 
     document.getElementById('prev-step-1').addEventListener('click', () => {
@@ -143,24 +242,69 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('next-step-3').addEventListener('click', () => {
         if (!selectedSlot) return;
+        
         // Update summary in Step 3
+        const endTime = calculateEndTime(selectedSlot, selectedService.duration);
+        const totalPrice = `$${selectedService.price}`;
+        
         document.getElementById('summary-barber').textContent = selectedBarber.name;
         document.getElementById('summary-service').textContent = selectedService.name;
         document.getElementById('summary-date').textContent = dateInput.value;
         document.getElementById('summary-time').textContent = selectedSlot;
+        document.getElementById('summary-end-time').textContent = endTime;
+        document.getElementById('summary-total-price').textContent = totalPrice;
+        
         showStep(3);
+        saveStateToLocalStorage();
     });
 
     document.getElementById('prev-step-2').addEventListener('click', () => {
         showStep(2);
     });
-
+    
     // --- STEP 1 LOGIC (Service & Barber) ---
+
+    // Dynamic Service Filtering
+    function updateServiceDropdown(services) {
+        serviceSelect.innerHTML = '<option value="">Select a service</option>';
+        services.forEach(service => {
+            const option = document.createElement('option');
+            option.value = service.id;
+            option.textContent = `${service.name} ($${service.price} - ${service.duration} min)`;
+            serviceSelect.appendChild(option);
+        });
+    }
+
+    function updateBarberSpecialties(barberId) {
+        selectedBarber = BARBERS.find(b => b.id === barberId);
+        
+        if (selectedBarber) {
+            const filteredServices = SERVICES.filter(service => 
+                service.tags.some(tag => selectedBarber.specialties.includes(tag))
+            );
+            updateServiceDropdown(filteredServices);
+            filterHint.classList.remove('hidden');
+            announceStatus(`Service list filtered by ${selectedBarber.name}'s specialties.`);
+        } else {
+            // If no barber selected, show all services
+            updateServiceDropdown(SERVICES);
+            filterHint.classList.add('hidden');
+            announceStatus(`Showing all services.`);
+        }
+    }
 
     function updateSelections() {
         const serviceId = serviceSelect.value;
         const barberId = barberSelect.value;
         
+        // Update service filter logic only if barber changes
+        if (barberId) {
+            updateBarberSpecialties(barberId);
+        } else {
+             updateServiceDropdown(SERVICES);
+             filterHint.classList.add('hidden');
+        }
+
         selectedService = SERVICES.find(s => s.id === serviceId);
         selectedBarber = BARBERS.find(b => b.id === barberId);
 
@@ -177,13 +321,14 @@ document.addEventListener('DOMContentLoaded', function() {
         viewBioBtn.classList.toggle('hidden', !selectedBarber);
         viewBioBtn.disabled = !selectedBarber;
 
-        // Enable Next button if both are selected
         nextStep2Btn.disabled = !(selectedService && selectedBarber);
         
-        // If date is set, re-validate slots based on new barber/service
-        if (dateInput.value) {
+        if (currentStep === 1 || currentStep === 2) {
+             selectedSlot = null;
+             nextStep3Btn.disabled = true;
              validateDateAndGenerateSlots();
         }
+        saveStateToLocalStorage();
     }
 
     serviceSelect.addEventListener('change', updateSelections);
@@ -191,7 +336,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- STEP 2 LOGIC (Date & Time) ---
     
-    // NEW FEATURE: Date validation (no weekends, no past dates)
     function validateDateAndGenerateSlots() {
         const bookingDateString = dateInput.value;
         if (!bookingDateString || !selectedBarber || !selectedService) {
@@ -202,34 +346,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const bookingDate = new Date(bookingDateString);
-        bookingDate.setHours(0, 0, 0, 0); // Normalize time for comparison
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        bookingDate.setHours(0, 0, 0, 0); 
 
         // Check for Saturday (Saturday is 6)
         if (bookingDate.getDay() === 6) {
             dayWarning.classList.remove('hidden');
             timeContainer.innerHTML = '<p class="placeholder-text">No bookings available on Saturdays.</p>';
             nextStep3Btn.disabled = true;
+            announceStatus("Cannot book on Saturday. Please select another day.");
             return;
         } else {
             dayWarning.classList.add('hidden');
         }
 
-        // Check for past dates (should be handled by dateInput.min, but good for robustness)
-        if (bookingDate.getTime() < today.getTime()) {
-            // This should not happen if dateInput.min is set correctly, but as fallback:
-            dayWarning.textContent = "Cannot book in the past.";
-            dayWarning.classList.remove('hidden');
-            timeContainer.innerHTML = '<p class="placeholder-text">Please select a future date.</p>';
-            nextStep3Btn.disabled = true;
-            return;
-        }
-
         generateTimeSlots(bookingDateString);
     }
 
-    // Function to generate time slots
     function generateTimeSlots(bookingDateString) {
         const duration = selectedService.duration;
         const [startHour, startMinute] = selectedBarber.shift[0].split(':').map(Number);
@@ -249,17 +381,16 @@ document.addEventListener('DOMContentLoaded', function() {
         while (currentTime.getTime() + duration * 60000 <= endTime.getTime()) {
             const slotStart = ('0' + currentTime.getHours()).slice(-2) + ':' + ('0' + currentTime.getMinutes()).slice(-2);
             
-            // 1. Check for simulated booking conflict
             const isBooked = SIMULATED_BOOKINGS.some(booking => 
                 booking.barber === selectedBarber.id && 
                 booking.date === bookingDateString && 
                 booking.time === slotStart
             );
             
-            // 2. NEW FEATURE: Check for 60-minute time buffer
             const slotStartTimeMs = currentTime.getTime();
+            const isToday = bookingDateString === getTodayDateString();
             const bufferTimeMs = now.getTime() + BOOKING_BUFFER_MINUTES * 60000;
-            const isTooSoon = slotStartTimeMs < bufferTimeMs;
+            const isTooSoon = isToday && (slotStartTimeMs < bufferTimeMs);
             
             const slotEl = document.createElement('div');
             slotEl.classList.add('time-slot');
@@ -268,25 +399,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (isBooked) {
                 slotEl.classList.add('booked');
+                slotEl.setAttribute('aria-label', `Slot at ${slotStart} is booked.`);
             } else if (isTooSoon) {
                  slotEl.classList.add('disabled');
+                 slotEl.setAttribute('aria-label', `Slot at ${slotStart} is too soon to book.`);
             } else {
                 availableSlotsExist = true;
+                slotEl.setAttribute('tabindex', '0'); 
+                slotEl.setAttribute('role', 'button');
+                slotEl.setAttribute('aria-label', `Select time slot ${slotStart}`);
                 slotEl.addEventListener('click', handleSlotSelection);
+                slotEl.addEventListener('keydown', (e) => { 
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleSlotSelection(e);
+                    }
+                });
+                
+                if (slotStart === selectedSlot) {
+                     slotEl.classList.add('selected');
+                     nextStep3Btn.disabled = false;
+                }
             }
             
             timeContainer.appendChild(slotEl);
 
-            // Move to the next potential start time (slot duration)
             currentTime = new Date(currentTime.getTime() + duration * 60000);
         }
 
         if (!availableSlotsExist) {
             timeContainer.innerHTML = '<p class="placeholder-text">No available slots for this combination. Try another date or barber.</p>';
+            announceStatus("No time slots available.");
+        } else {
+            announceStatus("Time slots successfully loaded.");
         }
-        
-        // Ensure Next button reflects current slot selection status
-        nextStep3Btn.disabled = !selectedSlot;
     }
 
     function handleSlotSelection(event) {
@@ -294,30 +440,75 @@ document.addEventListener('DOMContentLoaded', function() {
         const previouslySelected = timeContainer.querySelector('.time-slot.selected');
         if (previouslySelected) {
             previouslySelected.classList.remove('selected');
+            previouslySelected.setAttribute('aria-selected', 'false');
         }
 
         // Select new slot
-        event.target.classList.add('selected');
-        selectedSlot = event.target.dataset.time;
-        nextStep3Btn.disabled = false; // Enable next button
+        const newSlot = event.currentTarget;
+        newSlot.classList.add('selected');
+        newSlot.setAttribute('aria-selected', 'true');
+        selectedSlot = newSlot.dataset.time;
+        nextStep3Btn.disabled = false;
+        saveStateToLocalStorage();
+        announceStatus(`Time slot selected: ${selectedSlot}`);
     }
 
     dateInput.addEventListener('change', () => {
-        // Clear previous time selection
         selectedSlot = null;
         validateDateAndGenerateSlots();
+        saveStateToLocalStorage();
+    });
+    
+    // --- STEP 3 LOGIC (Instant Feedback & Confirmation) ---
+    
+    // Instant Input Feedback
+    nameInput.addEventListener('input', () => {
+        if (nameInput.value.trim().length > 1) {
+            nameFeedbackIcon.classList.remove('hidden');
+        } else {
+            nameFeedbackIcon.classList.add('hidden');
+        }
     });
 
-    // --- STEP 3 LOGIC (Form Submission) ---
+    // Client-Side Confirmation Dialog (Pre-Submit Check)
+    submitCheckBtn.addEventListener('click', () => {
+        const name = nameInput.value.trim();
+        
+        if (!name) {
+            alert("Please enter your name to confirm the booking.");
+            nameInput.focus();
+            return;
+        }
+        
+        const summary = `
+            Booking Details:
+            Barber: ${selectedBarber.name}
+            Service: ${selectedService.name}
+            Date: ${document.getElementById('summary-date').textContent}
+            Start Time: ${document.getElementById('summary-time').textContent}
+            End Time: ${document.getElementById('summary-end-time').textContent}
+            Total Price: ${document.getElementById('summary-total-price').textContent}
+            Name: ${name}
+            
+            Confirm this appointment?
+        `;
+        
+        if (confirm(summary)) {
+            // If user confirms the native dialog, proceed to final submission logic
+            finalizeBooking();
+        } else {
+            announceStatus("Booking canceled by user.");
+        }
+    });
 
-    bookingForm.addEventListener('submit', function(event) {
-        event.preventDefault();
-
-        const name = document.getElementById('name').value;
+    function finalizeBooking() {
+        const name = nameInput.value.trim();
+        const endTime = calculateEndTime(selectedSlot, selectedService.duration);
         
         // Hide form and show confirmation
         steps[3].classList.add('hidden');
         document.getElementById('confirmation-message').classList.remove('hidden');
+        setStepIndicator(4); 
 
         // Update confirmation message content
         document.getElementById('customer-name').textContent = name;
@@ -325,6 +516,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('booked-barber').textContent = selectedBarber.name;
         document.getElementById('booked-date').textContent = dateInput.value;
         document.getElementById('booked-time').textContent = selectedSlot;
+        document.getElementById('booked-end-time').textContent = endTime; // Confirmed end time
+        document.getElementById('booked-price').textContent = `$${selectedService.price}`; // Confirmed price
         
         // Simulate adding to bookings (for this session only)
         SIMULATED_BOOKINGS.push({
@@ -332,5 +525,9 @@ document.addEventListener('DOMContentLoaded', function() {
             date: dateInput.value,
             time: selectedSlot
         });
-    });
+        
+        // Clear local storage upon successful booking
+        localStorage.removeItem('barberBookingState');
+        announceStatus(`Appointment confirmed for ${name}.`);
+    }
 });

@@ -1,27 +1,86 @@
+/* --- Default (Light) Mode Variables --- */
 :root {
     --primary-color: #A0522D; /* Sienna (Barber Theme) */
     --secondary-color: #333;
     --success-color: #5cb85c;
-    --info-color: #007bff; /* Blue for info button */
-    --warning-color: #dc3545; /* Red for warnings */
+    --info-color: #007bff;
+    --warning-color: #dc3545;
     --background-light: #f8f8f8;
+    --content-bg: white;
     --font-color: #222;
+    --border-color: #ddd;
+    --slot-bg-hover: #f0f0f0;
+    --focus-ring-color: #007bff; /* Standard focus color */
 }
 
+/* --- Dark Mode Variables --- */
+.dark-mode {
+    --secondary-color: #eee;
+    --background-light: #121212;
+    --content-bg: #1e1e1e;
+    --font-color: #f1f1f1;
+    --border-color: #333;
+    --slot-bg-hover: #333;
+    --focus-ring-color: #6daee3;
+}
+.dark-mode header {
+    background-color: #7b4528;
+}
+.dark-mode #booking-section, .dark-mode .modal-content {
+    background-color: var(--content-bg);
+    box-shadow: 0 10px 25px rgba(255, 255, 255, 0.05);
+}
+.dark-mode input, .dark-mode select {
+    background-color: #2c2c2c;
+    border-color: #444;
+    color: var(--font-color);
+}
+.dark-mode .details-box, .dark-mode .summary-box {
+    background-color: #252525;
+    border-color: #333;
+}
+.dark-mode .indicator {
+    color: #999;
+}
+.dark-mode .step {
+    border-color: #333;
+}
+.dark-mode .time-slot {
+    background-color: #2c2c2c;
+    color: var(--font-color);
+    border-color: #444;
+}
+.dark-mode .time-slot.booked {
+    background-color: #382020;
+    color: #f99;
+    border-color: #553333;
+}
+.dark-mode .time-slot.disabled {
+    background-color: #1a1a1a;
+    color: #555;
+    border-color: #222;
+}
+
+
+/* --- General Styling --- */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
     background-color: var(--background-light);
     color: var(--font-color);
+    transition: background-color 0.5s, color 0.5s;
 }
 
 header {
     background-color: var(--primary-color);
     color: white;
-    padding: 1.5em 0;
+    padding: 1.5em 20px;
     text-align: center;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 header h1 {
@@ -29,11 +88,26 @@ header h1 {
     font-size: 2em;
 }
 
+/* Toggle Button Styling */
+.btn-toggle {
+    background: none;
+    border: 1px solid white;
+    color: white;
+    padding: 8px 15px;
+    font-size: 0.9em;
+    cursor: pointer;
+    border-radius: 5px;
+}
+.btn-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+
 #booking-section {
     max-width: 700px;
     margin: 40px auto;
     padding: 30px;
-    background-color: white;
+    background-color: var(--content-bg);
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
@@ -43,39 +117,12 @@ h2, h3 {
     color: var(--secondary-color);
     margin-bottom: 25px;
 }
-
-/* --- Step Indicator Styling --- */
-#step-indicator {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 30px;
-    padding: 0 10px;
-}
-.indicator {
-    flex-grow: 1;
-    text-align: center;
-    padding: 10px 5px;
-    border-bottom: 3px solid #ccc;
-    color: #888;
-    font-weight: 600;
-    transition: all 0.3s;
-}
-.indicator.active {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-}
-.indicator.complete {
-    border-color: var(--success-color);
-    color: var(--success-color);
-}
-
 .step {
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     padding: 20px;
     border-radius: 8px;
     margin-bottom: 20px;
 }
-
 .form-group {
     margin-bottom: 20px;
 }
@@ -87,12 +134,47 @@ label {
     color: var(--secondary-color);
 }
 
+/* Input Focus Ring (New Feature) */
+input[type="text"]:focus,
+input[type="date"]:focus,
+select:focus,
+button:focus:not(:disabled),
+.time-slot:focus {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: 2px;
+}
+
+/* Instant Feedback Styling */
+.input-with-feedback {
+    position: relative;
+}
+.feedback-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--success-color);
+    font-size: 1.2em;
+    pointer-events: none;
+}
+/* Filter Hint Styling */
+.filter-hint {
+    display: block;
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 5px;
+    font-style: italic;
+}
+.dark-mode .filter-hint {
+    color: #aaa;
+}
+
 input[type="text"],
 input[type="date"],
 select {
     width: 100%;
     padding: 12px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     box-sizing: border-box;
     font-size: 1em;
@@ -101,7 +183,7 @@ select {
 
 input:focus, select:focus {
     border-color: var(--primary-color);
-    outline: none;
+    outline: none; /* Remove default browser outline */
 }
 
 /* Button Styles */
@@ -120,7 +202,7 @@ button {
     color: white;
 }
 .btn-primary:hover:not(:disabled) {
-    background-color: #8B4513; /* Darker Sienna */
+    background-color: #8B4513;
 }
 .btn-secondary {
     background-color: #ccc;
@@ -145,7 +227,6 @@ button {
     background-color: #0056b3;
 }
 
-
 button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -160,9 +241,20 @@ button:disabled {
     background-color: #fffaf0;
     border-radius: 4px;
 }
+.dark-mode .details-box, .dark-mode .summary-box {
+    background-color: #252525;
+    border-left-color: var(--primary-color);
+}
 .summary-box h4 {
     margin-top: 0;
     color: var(--primary-color);
+}
+/* New Feature: Summary Price Emphasis */
+.summary-total {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--success-color);
+    margin-top: 10px;
 }
 
 .warning-text {
@@ -184,15 +276,18 @@ button:disabled {
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s;
-    background-color: white;
+    background-color: var(--content-bg);
+    color: var(--font-color);
 }
-.time-slot:hover:not(.booked):not(.disabled) {
-    background-color: #f0f0f0;
+.time-slot:hover:not(.booked):not(.disabled),
+.time-slot:focus:not(.booked):not(.disabled) { /* Added focus style */
+    background-color: var(--slot-bg-hover);
 }
 .time-slot.selected {
     background-color: var(--primary-color);
     color: white;
     border-color: var(--primary-color);
+    outline: none; /* remove focus ring from selected state */
 }
 .time-slot.booked {
     background-color: #fdd;
@@ -202,7 +297,6 @@ button:disabled {
     text-decoration: line-through;
     opacity: 0.7;
 }
-/* New class for future time buffer */
 .time-slot.disabled {
     background-color: #eee;
     color: #999;
@@ -211,7 +305,32 @@ button:disabled {
     opacity: 0.5;
 }
 
-/* --- Modal Styling --- */
+/* Step Indicator Styling */
+#step-indicator {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    padding: 0 10px;
+}
+.indicator {
+    flex-grow: 1;
+    text-align: center;
+    padding: 10px 5px;
+    border-bottom: 3px solid #ccc;
+    color: #888;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+.indicator.active {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+.indicator.complete {
+    border-color: var(--success-color);
+    color: var(--success-color);
+}
+
+/* Modal Styling (used for Barber Bio and Timeout) */
 .modal {
     position: fixed;
     z-index: 1000;
@@ -220,13 +339,13 @@ button:disabled {
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: rgba(0, 0, 0, 0.6); /* Darker backdrop for timeout */
     display: flex;
     justify-content: center;
     align-items: center;
 }
 .modal-content {
-    background-color: white;
+    background-color: var(--content-bg);
     margin: 15% auto;
     padding: 30px;
     border-radius: 8px;
@@ -236,6 +355,16 @@ button:disabled {
     position: relative;
     text-align: center;
 }
+
+/* Timeout specific styles */
+.timeout-content {
+    border: 3px solid var(--warning-color);
+}
+.warning-icon {
+    color: var(--warning-color);
+    margin-right: 10px;
+}
+
 .close-button {
     color: #aaa;
     float: right;
@@ -258,6 +387,10 @@ button:disabled {
     padding-top: 10px;
     border-top: 1px solid #eee;
 }
+.dark-mode .modal-hours {
+    color: #aaa;
+    border-top-color: #333;
+}
 
 /* Confirmation Message */
 #confirmation-message {
@@ -267,6 +400,11 @@ button:disabled {
     border: 1px solid var(--success-color);
     color: var(--font-color);
     border-radius: 8px;
+}
+.dark-mode #confirmation-message {
+    background-color: #1a331a;
+    border-color: #2e602e;
+    color: var(--font-color);
 }
 .success-icon {
     font-size: 3em;

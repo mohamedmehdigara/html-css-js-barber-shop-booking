@@ -7,30 +7,34 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="light-mode">
     <header>
         <h1><i class="fas fa-cut"></i> The Sharp Cut</h1>
+        <button id="mode-toggle" class="btn-toggle" aria-live="polite" aria-label="Toggle dark and light mode"><i class="fas fa-moon"></i> Dark Mode</button>
     </header>
 
     <section id="booking-section">
         <h2>Book Your Appointment</h2>
 
-        <div id="step-indicator">
-            <div class="indicator active" data-step="1">1. Service & Barber</div>
-            <div class="indicator" data-step="2">2. Date & Time</div>
-            <div class="indicator" data-step="3">3. Details & Confirm</div>
+        <div id="step-indicator" role="tablist">
+            <div class="indicator active" data-step="1" role="tab" aria-selected="true" aria-controls="step-1">1. Service & Barber</div>
+            <div class="indicator" data-step="2" role="tab" aria-selected="false" aria-controls="step-2">2. Date & Time</div>
+            <div class="indicator" data-step="3" role="tab" aria-selected="false" aria-controls="step-3">3. Details & Confirm</div>
         </div>
+        
+        <div id="status-announcer" class="hidden" aria-live="polite"></div>
 
         <form id="booking-form">
 
-            <div class="step" id="step-1">
+            <div class="step" id="step-1" role="tabpanel" aria-labelledby="step-1">
                 <h3>Step 1: Choose Service & Barber</h3>
 
                 <div class="form-group">
                     <label for="service"><i class="fas fa-scissors"></i> Service:</label>
-                    <select id="service" name="service" required>
+                    <select id="service" name="service" required aria-describedby="filter-hint">
                         <option value="">Select a service</option>
                     </select>
+                    <small id="filter-hint" class="filter-hint hidden">Service list filtered based on barber specialization.</small>
                 </div>
 
                 <div class="form-group">
@@ -50,7 +54,7 @@
                 <button type="button" id="next-step-2" class="btn-primary" disabled>Next</button>
             </div>
 
-            <div class="step hidden" id="step-2">
+            <div class="step hidden" id="step-2" role="tabpanel" aria-labelledby="step-2">
                 <h3>Step 2: Choose Date & Time</h3>
 
                 <div class="form-group">
@@ -70,23 +74,30 @@
                 <button type="button" id="next-step-3" class="btn-primary" disabled>Next</button>
             </div>
 
-            <div class="step hidden" id="step-3">
+            <div class="step hidden" id="step-3" role="tabpanel" aria-labelledby="step-3">
                 <h3>Step 3: Your Contact Details</h3>
 
                 <div class="form-group">
                     <label for="name"><i class="fas fa-user"></i> Name:</label>
-                    <input type="text" id="name" name="name" required>
+                    <div class="input-with-feedback">
+                        <input type="text" id="name" name="name" required>
+                        <span id="name-feedback" class="feedback-icon hidden"><i class="fas fa-check-circle"></i></span>
+                    </div>
                 </div>
 
                 <div class="summary-box">
                     <h4>Booking Summary</h4>
                     <p>Barber: <span id="summary-barber"></span></p>
                     <p>Service: <span id="summary-service"></span></p>
-                    <p>Date: <span id="summary-date"></span> at <span id="summary-time"></span></p>
+                    <p>Date: <span id="summary-date"></span></p>
+                    <p>Start Time: <span id="summary-time"></span></p>
+                    <p>Estimated End Time: <strong id="summary-end-time">--:--</strong></p>
+                    <hr>
+                    <p class="summary-total">Total Price: <strong id="summary-total-price">$--</strong></p>
                 </div>
 
                 <button type="button" id="prev-step-2" class="btn-secondary">Previous</button>
-                <button type="submit" class="btn-confirm">Confirm Booking</button>
+                <button type="button" id="submit-check" class="btn-confirm">Review & Confirm</button>
             </div>
 
         </form>
@@ -98,18 +109,29 @@
             <div class="summary-box">
                 <p><strong>Service:</strong> <span id="booked-service"></span></p>
                 <p><strong>Barber:</strong> <span id="booked-barber"></span></p>
-                <p><strong>Time:</strong> <span id="booked-date"></span> at <span id="booked-time"></span></p>
+                <p><strong>Time:</strong> <span id="booked-date"></span> at <span id="booked-time"></span> (Ends: <span id="booked-end-time">--:--</span>)</p>
+                <p><strong>Price:</strong> <span id="booked-price">$--</span></p>
             </div>
-            <button onclick="window.location.reload()" class="btn-secondary">Make Another Booking</button>
+            <button onclick="window.location.reload()" class="btn-secondary" id="book-again-btn">Make Another Booking</button>
         </div>
     </section>
     
     <div id="barber-modal" class="modal hidden">
         <div class="modal-content">
-            <span class="close-button">&times;</span>
+            <span class="close-button" role="button" aria-label="Close dialog">&times;</span>
             <h4 id="modal-barber-name"></h4>
             <p id="modal-barber-bio"></p>
             <p class="modal-hours">Working Hours: <span id="modal-barber-hours"></span></p>
+        </div>
+    </div>
+
+    <div id="timeout-modal" class="modal hidden" role="alertdialog" aria-modal="true" aria-labelledby="timeout-title">
+        <div class="modal-content timeout-content">
+            <h4 id="timeout-title"><i class="fas fa-exclamation-triangle warning-icon"></i> Session Timeout Warning</h4>
+            <p>You have been inactive for too long. Your current booking progress will be cleared in <strong id="timeout-countdown">10</strong> seconds.</p>
+            <p>Click "Continue" to keep your session active.</p>
+            <button id="timeout-continue" class="btn-primary">Continue Booking</button>
+            <button id="timeout-reset" class="btn-secondary">Start Over</button>
         </div>
     </div>
 
