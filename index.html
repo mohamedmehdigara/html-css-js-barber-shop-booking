@@ -15,6 +15,12 @@
     <section id="booking-section">
         <h2>Book Your Appointment</h2>
 
+        <div id="step-indicator">
+            <div class="indicator active" data-step="1">1. Service & Barber</div>
+            <div class="indicator" data-step="2">2. Date & Time</div>
+            <div class="indicator" data-step="3">3. Details & Confirm</div>
+        </div>
+
         <form id="booking-form">
 
             <div class="step" id="step-1">
@@ -24,15 +30,17 @@
                     <label for="service"><i class="fas fa-scissors"></i> Service:</label>
                     <select id="service" name="service" required>
                         <option value="">Select a service</option>
-                        </select>
+                    </select>
                 </div>
 
                 <div class="form-group">
                     <label for="barber"><i class="fas fa-user-tie"></i> Barber:</label>
                     <select id="barber" name="barber" required>
                         <option value="">Select a barber</option>
-                        </select>
+                    </select>
                 </div>
+
+                <button type="button" id="view-barber-bio" class="btn-info hidden" disabled><i class="fas fa-info-circle"></i> View Barber Info</button>
 
                 <div id="service-details" class="details-box hidden">
                     <p>Price: <span id="detail-price"></span></p>
@@ -49,6 +57,7 @@
                     <label for="date"><i class="fas fa-calendar-alt"></i> Date:</label>
                     <input type="date" id="date" name="date" required>
                 </div>
+                <p id="day-warning" class="warning-text hidden"><i class="fas fa-exclamation-triangle"></i> Sorry, we are closed on Saturdays.</p>
 
                 <div class="form-group">
                     <label for="time"><i class="fas fa-clock"></i> Time Slots:</label>
@@ -68,6 +77,7 @@
                     <label for="name"><i class="fas fa-user"></i> Name:</label>
                     <input type="text" id="name" name="name" required>
                 </div>
+
                 <div class="summary-box">
                     <h4>Booking Summary</h4>
                     <p>Barber: <span id="summary-barber"></span></p>
@@ -93,6 +103,15 @@
             <button onclick="window.location.reload()" class="btn-secondary">Make Another Booking</button>
         </div>
     </section>
+    
+    <div id="barber-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h4 id="modal-barber-name"></h4>
+            <p id="modal-barber-bio"></p>
+            <p class="modal-hours">Working Hours: <span id="modal-barber-hours"></span></p>
+        </div>
+    </div>
 
     <footer>
         <p>&copy; 2025 The Sharp Cut | Built with HTML, CSS, & JS</p>

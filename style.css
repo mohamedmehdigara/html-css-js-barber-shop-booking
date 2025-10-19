@@ -2,6 +2,8 @@
     --primary-color: #A0522D; /* Sienna (Barber Theme) */
     --secondary-color: #333;
     --success-color: #5cb85c;
+    --info-color: #007bff; /* Blue for info button */
+    --warning-color: #dc3545; /* Red for warnings */
     --background-light: #f8f8f8;
     --font-color: #222;
 }
@@ -42,6 +44,31 @@ h2, h3 {
     margin-bottom: 25px;
 }
 
+/* --- Step Indicator Styling --- */
+#step-indicator {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    padding: 0 10px;
+}
+.indicator {
+    flex-grow: 1;
+    text-align: center;
+    padding: 10px 5px;
+    border-bottom: 3px solid #ccc;
+    color: #888;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+.indicator.active {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+.indicator.complete {
+    border-color: var(--success-color);
+    color: var(--success-color);
+}
+
 .step {
     border: 1px solid #ddd;
     padding: 20px;
@@ -61,7 +88,6 @@ label {
 }
 
 input[type="text"],
-input[type="email"],
 input[type="date"],
 select {
     width: 100%;
@@ -110,24 +136,40 @@ button {
 .btn-confirm:hover {
     background-color: #4cae4c;
 }
+.btn-info {
+    background-color: var(--info-color);
+    color: white;
+    margin-bottom: 15px;
+}
+.btn-info:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+
 
 button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
 
-/* Details and Summary Boxes */
+/* Details and Warning Boxes */
 .details-box, .summary-box {
     margin-top: 15px;
     padding: 15px;
     border: 1px solid #eee;
     border-left: 5px solid var(--primary-color);
-    background-color: #fffaf0; /* Creamy light background */
+    background-color: #fffaf0;
     border-radius: 4px;
 }
 .summary-box h4 {
     margin-top: 0;
     color: var(--primary-color);
+}
+
+.warning-text {
+    color: var(--warning-color);
+    font-weight: 500;
+    margin-top: -10px;
+    margin-bottom: 20px;
 }
 
 /* Time Slot Display */
@@ -144,7 +186,7 @@ button:disabled {
     transition: background-color 0.2s, color 0.2s;
     background-color: white;
 }
-.time-slot:hover {
+.time-slot:hover:not(.booked):not(.disabled) {
     background-color: #f0f0f0;
 }
 .time-slot.selected {
@@ -158,10 +200,63 @@ button:disabled {
     border-color: #f99;
     cursor: not-allowed;
     text-decoration: line-through;
+    opacity: 0.7;
 }
-.placeholder-text {
-    color: #888;
+/* New class for future time buffer */
+.time-slot.disabled {
+    background-color: #eee;
+    color: #999;
+    border-color: #ddd;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* --- Modal Styling --- */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.modal-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 30px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    position: relative;
+    text-align: center;
+}
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+}
+.close-button:hover,
+.close-button:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+.modal-hours {
     font-style: italic;
+    color: #666;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
 }
 
 /* Confirmation Message */

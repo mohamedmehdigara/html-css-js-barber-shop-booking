@@ -8,25 +8,27 @@ document.addEventListener('DOMContentLoaded', function() {
     ];
 
     const BARBERS = [
-        { id: 'albert', name: 'Albert', shift: ['09:00', '17:00'] },
-        { id: 'ben', name: 'Ben', shift: ['10:00', '18:00'] },
-        { id: 'charles', name: 'Charles', shift: ['11:00', '19:00'] }
+        { id: 'albert', name: 'Albert', shift: ['09:00', '17:00'], bio: "Albert is our master of fades and classic cuts. 10 years experience." },
+        { id: 'ben', name: 'Ben', shift: ['10:00', '18:00'], bio: "Ben specializes in modern styling and detailed beard shaping." },
+        { id: 'charles', name: 'Charles', shift: ['11:00', '19:00'], bio: "Charles is known for his signature hot towel shaves and artistic designs." }
     ];
 
     // Simulated Bookings: (BarberID, Date, Time)
-    // This simulates already-booked slots for realistic time slot generation
     const SIMULATED_BOOKINGS = [
         { barber: 'albert', date: getTodayDateString(), time: '10:00' },
-        { barber: 'albert', date: getTodayDateString(), time: '10:45' },
         { barber: 'ben', date: getTomorrowDateString(), time: '14:30' }
     ];
+    
+    // CONSTANTS
+    const BOOKING_BUFFER_MINUTES = 60; // Must book at least 60 minutes in the future
 
     // --- DOM Elements ---
     const bookingForm = document.getElementById('booking-form');
+    const stepIndicators = document.querySelectorAll('.indicator');
     const steps = {
         1: document.getElementById('step-1'),
-        2: document.getElementById('step-2'),
-        3: document.getElementById('step-3')
+        2: document:getElementById('step-2'),
+        3: document:getElementById('step-3')
     };
 
     const serviceSelect = document.getElementById('service');
@@ -35,30 +37,43 @@ document.addEventListener('DOMContentLoaded', function() {
     const timeContainer = document.getElementById('time-slots-container');
     const nextStep2Btn = document.getElementById('next-step-2');
     const nextStep3Btn = document.getElementById('next-step-3');
+    const dayWarning = document.getElementById('day-warning');
+    const viewBioBtn = document.getElementById('view-barber-bio');
+    const barberModal = document.getElementById('barber-modal');
 
     // --- State Management ---
     let selectedSlot = null;
     let selectedService = null;
     let selectedBarber = null;
+    let currentStep = 1;
 
     // --- UTILITY FUNCTIONS ---
 
-    // Get today's date in YYYY-MM-DD format
     function getTodayDateString() {
         const today = new Date();
         return today.toISOString().split('T')[0];
     }
     
-    // Get tomorrow's date in YYYY-MM-DD format (used for simulation example)
     function getTomorrowDateString() {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         return tomorrow.toISOString().split('T')[0];
     }
 
-    // --- INITIALIZATION ---
+    function setStepIndicator(stepNum) {
+        currentStep = stepNum;
+        stepIndicators.forEach(indicator => {
+            const indicatorStep = parseInt(indicator.dataset.step);
+            indicator.classList.remove('active', 'complete');
+            if (indicatorStep === stepNum) {
+                indicator.classList.add('active');
+            } else if (indicatorStep < stepNum) {
+                indicator.classList.add('complete');
+            }
+        });
+    }
 
-    // Set the minimum date input to today
+    // --- INITIALIZATION ---
     dateInput.min = getTodayDateString();
 
     // Populate service dropdown
@@ -76,6 +91,28 @@ document.addEventListener('DOMContentLoaded', function() {
         option.textContent = barber.name;
         barberSelect.appendChild(option);
     });
+    setStepIndicator(1); // Initialize step indicator
+
+    // --- MODAL LOGIC (Barber Bio) ---
+    viewBioBtn.addEventListener('click', () => {
+        if (selectedBarber) {
+            document.getElementById('modal-barber-name').textContent = selectedBarber.name;
+            document.getElementById('modal-barber-bio').textContent = selectedBarber.bio;
+            document.getElementById('modal-barber-hours').textContent = `${selectedBarber.shift[0]} - ${selectedBarber.shift[1]}`;
+            barberModal.classList.remove('hidden');
+        }
+    });
+
+    document.querySelector('.close-button').addEventListener('click', () => {
+        barberModal.classList.add('hidden');
+    });
+
+    // Close modal if user clicks outside of it
+    window.addEventListener('click', (event) => {
+        if (event.target === barberModal) {
+            barberModal.classList.add('hidden');
+        }
+    });
 
     // --- STEP NAVIGATION ---
 
@@ -84,15 +121,19 @@ document.addEventListener('DOMContentLoaded', function() {
             steps[key].classList.add('hidden');
         });
         steps[stepNumber].classList.remove('hidden');
+        setStepIndicator(stepNumber);
     }
 
     document.getElementById('next-step-2').addEventListener('click', () => {
         if (!selectedService || !selectedBarber) return;
         showStep(2);
-        // Reset time selection when moving to Step 2
         selectedSlot = null;
-        dateInput.value = '';
-        timeContainer.innerHTML = '<p class="placeholder-text">Please select a date to see available times.</p>';
+        // Keep date value, but re-validate
+        if (dateInput.value) {
+            validateDateAndGenerateSlots();
+        } else {
+            timeContainer.innerHTML = '<p class="placeholder-text">Please select a date to see available times.</p>';
+        }
         nextStep3Btn.disabled = true;
     });
 
@@ -103,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('next-step-3').addEventListener('click', () => {
         if (!selectedSlot) return;
         // Update summary in Step 3
-        document.getElementById('summary-barber').textContent = BARBERS.find(b => b.id === selectedBarber.id).name;
+        document.getElementById('summary-barber').textContent = selectedBarber.name;
         document.getElementById('summary-service').textContent = selectedService.name;
         document.getElementById('summary-date').textContent = dateInput.value;
         document.getElementById('summary-time').textContent = selectedSlot;
@@ -116,7 +157,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- STEP 1 LOGIC (Service & Barber) ---
 
-    // Update service and barber state on change
     function updateSelections() {
         const serviceId = serviceSelect.value;
         const barberId = barberSelect.value;
@@ -134,12 +174,15 @@ document.addEventListener('DOMContentLoaded', function() {
             detailsBox.classList.add('hidden');
         }
 
+        viewBioBtn.classList.toggle('hidden', !selectedBarber);
+        viewBioBtn.disabled = !selectedBarber;
+
         // Enable Next button if both are selected
         nextStep2Btn.disabled = !(selectedService && selectedBarber);
         
-        // If we have selected a barber, and a date is set, re-render slots
+        // If date is set, re-validate slots based on new barber/service
         if (dateInput.value) {
-             generateTimeSlots();
+             validateDateAndGenerateSlots();
         }
     }
 
@@ -147,16 +190,47 @@ document.addEventListener('DOMContentLoaded', function() {
     barberSelect.addEventListener('change', updateSelections);
 
     // --- STEP 2 LOGIC (Date & Time) ---
-
-    // Function to generate time slots
-    function generateTimeSlots() {
-        if (!selectedBarber || !selectedService || !dateInput.value) {
+    
+    // NEW FEATURE: Date validation (no weekends, no past dates)
+    function validateDateAndGenerateSlots() {
+        const bookingDateString = dateInput.value;
+        if (!bookingDateString || !selectedBarber || !selectedService) {
+            dayWarning.classList.add('hidden');
             timeContainer.innerHTML = '<p class="placeholder-text">Please select a service, barber, and date.</p>';
             nextStep3Btn.disabled = true;
             return;
         }
 
-        const bookingDate = dateInput.value;
+        const bookingDate = new Date(bookingDateString);
+        bookingDate.setHours(0, 0, 0, 0); // Normalize time for comparison
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Check for Saturday (Saturday is 6)
+        if (bookingDate.getDay() === 6) {
+            dayWarning.classList.remove('hidden');
+            timeContainer.innerHTML = '<p class="placeholder-text">No bookings available on Saturdays.</p>';
+            nextStep3Btn.disabled = true;
+            return;
+        } else {
+            dayWarning.classList.add('hidden');
+        }
+
+        // Check for past dates (should be handled by dateInput.min, but good for robustness)
+        if (bookingDate.getTime() < today.getTime()) {
+            // This should not happen if dateInput.min is set correctly, but as fallback:
+            dayWarning.textContent = "Cannot book in the past.";
+            dayWarning.classList.remove('hidden');
+            timeContainer.innerHTML = '<p class="placeholder-text">Please select a future date.</p>';
+            nextStep3Btn.disabled = true;
+            return;
+        }
+
+        generateTimeSlots(bookingDateString);
+    }
+
+    // Function to generate time slots
+    function generateTimeSlots(bookingDateString) {
         const duration = selectedService.duration;
         const [startHour, startMinute] = selectedBarber.shift[0].split(':').map(Number);
         const [endHour, endMinute] = selectedBarber.shift[1].split(':').map(Number);
@@ -164,19 +238,29 @@ document.addEventListener('DOMContentLoaded', function() {
         timeContainer.innerHTML = '';
         let availableSlotsExist = false;
         
-        let currentTime = new Date(0, 0, 0, startHour, startMinute);
-        const endTime = new Date(0, 0, 0, endHour, endMinute);
+        const now = new Date();
+        
+        let currentTime = new Date(bookingDateString);
+        currentTime.setHours(startHour, startMinute, 0, 0);
+        
+        const endTime = new Date(bookingDateString);
+        endTime.setHours(endHour, endMinute, 0, 0);
 
         while (currentTime.getTime() + duration * 60000 <= endTime.getTime()) {
             const slotStart = ('0' + currentTime.getHours()).slice(-2) + ':' + ('0' + currentTime.getMinutes()).slice(-2);
             
-            // Check for simulated booking conflict
+            // 1. Check for simulated booking conflict
             const isBooked = SIMULATED_BOOKINGS.some(booking => 
                 booking.barber === selectedBarber.id && 
-                booking.date === bookingDate && 
+                booking.date === bookingDateString && 
                 booking.time === slotStart
             );
-
+            
+            // 2. NEW FEATURE: Check for 60-minute time buffer
+            const slotStartTimeMs = currentTime.getTime();
+            const bufferTimeMs = now.getTime() + BOOKING_BUFFER_MINUTES * 60000;
+            const isTooSoon = slotStartTimeMs < bufferTimeMs;
+            
             const slotEl = document.createElement('div');
             slotEl.classList.add('time-slot');
             slotEl.textContent = slotStart;
@@ -184,6 +268,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (isBooked) {
                 slotEl.classList.add('booked');
+            } else if (isTooSoon) {
+                 slotEl.classList.add('disabled');
             } else {
                 availableSlotsExist = true;
                 slotEl.addEventListener('click', handleSlotSelection);
@@ -196,8 +282,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (!availableSlotsExist) {
-            timeContainer.innerHTML = '<p class="placeholder-text">No available slots for this combination. Please try another date or barber.</p>';
+            timeContainer.innerHTML = '<p class="placeholder-text">No available slots for this combination. Try another date or barber.</p>';
         }
+        
+        // Ensure Next button reflects current slot selection status
+        nextStep3Btn.disabled = !selectedSlot;
     }
 
     function handleSlotSelection(event) {
@@ -216,18 +305,15 @@ document.addEventListener('DOMContentLoaded', function() {
     dateInput.addEventListener('change', () => {
         // Clear previous time selection
         selectedSlot = null;
-        nextStep3Btn.disabled = true;
-        generateTimeSlots();
+        validateDateAndGenerateSlots();
     });
 
     // --- STEP 3 LOGIC (Form Submission) ---
 
     bookingForm.addEventListener('submit', function(event) {
-        event.preventDefault(); // Stop form from reloading page
+        event.preventDefault();
 
-        // --- FINAL CONFIRMATION ---
         const name = document.getElementById('name').value;
-        // NOTE: Email is no longer required or collected.
         
         // Hide form and show confirmation
         steps[3].classList.add('hidden');
@@ -239,9 +325,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('booked-barber').textContent = selectedBarber.name;
         document.getElementById('booked-date').textContent = dateInput.value;
         document.getElementById('booked-time').textContent = selectedSlot;
-
-        // In a real app, you would now send this data to a server:
-        // { name, barber: selectedBarber.id, service: selectedService.id, date: dateInput.value, time: selectedSlot }
         
         // Simulate adding to bookings (for this session only)
         SIMULATED_BOOKINGS.push({
