@@ -11,6 +11,7 @@
     --border-color: #ddd;
     --slot-bg-hover: #f0f0f0;
     --focus-ring-color: #007bff; /* Standard focus color */
+    --progress-bg: #e9ecef;
 }
 
 /* --- Dark Mode Variables --- */
@@ -22,6 +23,7 @@
     --border-color: #333;
     --slot-bg-hover: #333;
     --focus-ring-color: #6daee3;
+    --progress-bg: #2c2c2c;
 }
 .dark-mode header {
     background-color: #7b4528;
@@ -305,6 +307,22 @@ button:disabled {
     margin-bottom: 20px;
 }
 
+/* --- Progress Bar Styling (NEW) --- */
+#progress-container {
+    height: 10px;
+    background-color: var(--progress-bg);
+    border-radius: 5px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+#progress-bar {
+    height: 100%;
+    width: 0%;
+    background-color: var(--primary-color);
+    transition: width 0.4s ease-in-out;
+}
+
+
 /* Time Slot Display */
 #time-slots-container {
     display: flex;
@@ -450,16 +468,20 @@ button:disabled {
     position: absolute;
     top: 10px;
     right: 15px;
+    transition: color 0.2s;
 }
 .close-button:hover,
 .close-button:focus {
-    color: #000;
+    color: var(--warning-color); /* Use a consistent color */
     text-decoration: none;
     cursor: pointer;
 }
+.dark-mode .close-button {
+    color: #bbb;
+}
 .dark-mode .close-button:hover,
 .dark-mode .close-button:focus {
-    color: #fff;
+    color: var(--warning-color);
 }
 .modal-hours {
     font-style: italic;

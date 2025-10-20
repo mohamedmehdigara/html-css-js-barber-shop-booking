@@ -16,7 +16,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Simulated Bookings: (BarberID, Date, Time) - Can be updated by conflict resolver
     let SIMULATED_BOOKINGS = [ 
         { barber: 'albert', date: getTodayDateString(), time: '10:00' },
-        { barber: 'ben', date: getTomorrowDateString(), time: '14:30' }
+        { barber: 'ben', date: getTomorrowDateString(), time: '14:30' },
+        // Add a fully booked day for the hint feature demo (e.g., Albert is fully booked the day after tomorrow)
+        { barber: 'albert', date: getDayAfterTomorrowString(), time: '09:00' },
+        { barber: 'albert', date: getDayAfterTomorrowString(), time: '09:45' },
+        { barber: 'albert', date: getDayAfterTomorrowString(), time: '10:30' },
+        { barber: 'albert', date: getDayAfterTomorrowString(), time: '11:15' },
+        { barber: 'albert', date: getDayAfterTomorrowString(), time: '12:00' },
+        { barber: 'albert', date: getDayAfterTomorrowString(), time: '12:45' },
+        { barber: 'albert', date: getDayAfterTomorrowString(), time: '13:30' },
+        { barber: 'albert', date: getDayAfterTomorrowString(), time: '14:15' },
+        { barber: 'albert', date: getDayAfterTomorrowString(), time: '15:00' },
+        { barber: 'albert', date: getDayAfterTomorrowString(), time: '15:45' },
+        { barber: 'albert', date: getDayAfterTomorrowString(), time: '16:30' }, // Albert's shift ends at 17:00, 45 min slots
     ];
     
     // CONSTANTS
@@ -51,6 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // NEW FEATURE DOM Elements
     const dateHint = document.getElementById('date-availability-hint');
     const undoButton = document.getElementById('undo-time-select');
+    const progressBar = document.getElementById('progress-bar');
     
     // Create Tooltip Element 
     const tooltip = document.createElement('div');
@@ -64,11 +77,79 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentStep = 1;
     let allServicesMap = new Map(); 
 
-    // NEW FEATURE: Time Slot History Stack
+    // Time Slot History Stack
     let slotHistory = []; 
     const MAX_HISTORY = 3; 
 
     SERVICES.forEach(s => allServicesMap.set(s.id, s));
+
+    // --- UTILITY FUNCTIONS & DATE HELPERS ---
+
+    function getTodayDateString() {
+        const today = new Date();
+        return today.toISOString().split('T')[0];
+    }
+    
+    function getTomorrowDateString() {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.toISOString().split('T')[0];
+    }
+
+    function getDayAfterTomorrowString() {
+        const dayAfterTomorrow = new Date();
+        dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+        return dayAfterTomorrow.toISOString().split('T')[0];
+    }
+    
+    function getMaxDateString() {
+        const maxDate = new Date();
+        maxDate.setDate(maxDate.getDate() + MAX_BOOKING_DAYS_AHEAD);
+        return maxDate.toISOString().split('T')[0];
+    }
+    
+    function announceStatus(message) {
+        statusAnnouncer.textContent = message;
+    }
+
+    function triggerHapticFeedback(duration = 50) {
+        if (navigator.vibrate) {
+            navigator.vibrate(duration);
+        }
+    }
+
+    function calculateEndTime(startTime, durationMinutes) {
+        if (!startTime || !durationMinutes) return '--:--';
+        
+        const [startHour, startMinute] = startTime.split(':').map(Number);
+        
+        const baseDate = new Date(getTodayDateString()); 
+        baseDate.setHours(startHour, startMinute, 0, 0);
+        
+        const endTimeMs = baseDate.getTime() + durationMinutes * 60000;
+        const endTime = new Date(endTimeMs);
+        
+        return ('0' + endTime.getHours()).slice(-2) + ':' + ('0' + endTime.getMinutes()).slice(-2);
+    }
+    
+    // NEW FEATURE: Progress Bar Logic
+    function updateProgressBar() {
+        let percentage = 0;
+        if (currentStep === 1) {
+            percentage = (selectedService && selectedBarber) ? 33 : 0;
+        } else if (currentStep === 2) {
+            percentage = selectedSlot ? 66 : 33;
+        } else if (currentStep === 3) {
+            // Assume completion if name is entered for step 3
+            percentage = nameInput.value.trim().length > 0 ? 100 : 66; 
+        } else if (currentStep === 4) {
+            percentage = 100; // Confirmation screen
+        }
+
+        progressBar.style.width = percentage + '%';
+        progressBar.setAttribute('aria-valuenow', percentage);
+    }
+
 
     // --- HISTORY MANAGEMENT FUNCTIONS ---
 
@@ -87,11 +168,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (slotHistory.length > 0) {
             const lastSelectedTime = slotHistory.pop();
             
-            // Deselect the current slot
-            const currentSelected = timeContainer.querySelector('.time-slot.selected');
-            if (currentSelected) {
-                currentSelected.classList.remove('selected');
-                currentSelected.setAttribute('aria-selected', 'false');
+            // Deselect the slot that was just selected
+            const justSelected = timeContainer.querySelector(`[data-time="${lastSelectedTime}"]`);
+            if (justSelected) {
+                justSelected.classList.remove('selected', 'pulse');
+                justSelected.setAttribute('aria-selected', 'false');
             }
             
             // Re-select the slot before the last one, if it exists
@@ -113,55 +194,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             announceStatus(`Selection undone. Current time is ${selectedSlot || 'none'}.`);
             triggerHapticFeedback(70); 
+            updateProgressBar();
             saveStateToLocalStorage();
         }
     }
 
-    // --- UTILITY FUNCTIONS ---
 
-    function getTodayDateString() {
-        const today = new Date();
-        return today.toISOString().split('T')[0];
-    }
-    
-    function getTomorrowDateString() {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return tomorrow.toISOString().split('T')[0];
-    }
-    
-    function getMaxDateString() {
-        const maxDate = new Date();
-        maxDate.setDate(maxDate.getDate() + MAX_BOOKING_DAYS_AHEAD);
-        return maxDate.toISOString().split('T')[0];
-    }
-    
-    function announceStatus(message) {
-        statusAnnouncer.textContent = message;
-    }
+    // --- STATE & NAVIGATION MANAGEMENT ---
 
-    // NEW FEATURE: Haptic Feedback Function
-    function triggerHapticFeedback(duration = 50) {
-        if (navigator.vibrate) {
-            navigator.vibrate(duration);
-        }
-    }
-
-    function calculateEndTime(startTime, durationMinutes) {
-        if (!startTime || !durationMinutes) return '--:--';
-        
-        const [startHour, startMinute] = startTime.split(':').map(Number);
-        
-        const baseDate = new Date(getTodayDateString()); 
-        baseDate.setHours(startHour, startMinute, 0, 0);
-        
-        const endTimeMs = baseDate.getTime() + durationMinutes * 60000;
-        const endTime = new Date(endTimeMs);
-        
-        return ('0' + endTime.getHours()).slice(-2) + ':' + ('0' + endTime.getMinutes()).slice(-2);
-    }
-
-    // Local Storage Persistence (Simulated Cart)
     function saveStateToLocalStorage() {
         const state = {
             serviceId: serviceSelect.value,
@@ -178,23 +218,26 @@ document.addEventListener('DOMContentLoaded', function() {
             const state = JSON.parse(savedState);
             
             barberSelect.value = state.barberId || '';
-            updateSelections(true); 
-            
+            updateBarberSpecialties(state.barberId); // Must run before serviceSelect value is set
+
             serviceSelect.value = state.serviceId || ''; 
             selectedService = allServicesMap.get(state.serviceId); 
             
             dateInput.value = state.date;
             selectedSlot = state.time;
             
-            if (currentStep === 2 && state.date) {
-                validateDateAndGenerateSlots();
+            // Re-evaluate selections based on loaded state
+            updateSelections(true); 
+
+            if (currentStep === 2 && state.date && state.barberId && state.serviceId) {
+                // Delay slot selection briefly to ensure slots are generated
                 setTimeout(() => {
                     const slotEl = timeContainer.querySelector(`[data-time="${selectedSlot}"]`);
                     if (slotEl && !slotEl.classList.contains('booked') && !slotEl.classList.contains('disabled')) {
                         slotEl.classList.add('selected');
                         nextStep3Btn.disabled = false;
                     }
-                }, 50);
+                }, 100);
             }
         }
     }
@@ -214,10 +257,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
+        updateProgressBar();
         announceStatus(`Now on step ${stepNum}`);
     }
 
-    // Dark Mode Toggle
     function toggleMode() {
         const isDarkMode = body.classList.toggle('dark-mode');
         localStorage.setItem('barberAppMode', isDarkMode ? 'dark' : 'light');
@@ -227,42 +270,6 @@ document.addEventListener('DOMContentLoaded', function() {
             : '<i class="fas fa-moon"></i> ' + modeText;
         announceStatus(`Switched to ${modeText}`);
     }
-
-    // --- INITIALIZATION ---
-    
-    // Apply saved theme preference
-    if (localStorage.getItem('barberAppMode') === 'dark') {
-        body.classList.add('dark-mode');
-        modeToggleBtn.innerHTML = '<i class="fas fa-sun"></i> Light Mode';
-    } else {
-        body.classList.remove('dark-mode');
-        modeToggleBtn.innerHTML = '<i class="fas fa-moon"></i> Dark Mode';
-    }
-    modeToggleBtn.addEventListener('click', toggleMode);
-
-    dateInput.min = getTodayDateString();
-    dateInput.max = getMaxDateString();
-
-    BARBERS.forEach(barber => {
-        const option = document.createElement('option');
-        option.value = barber.id;
-        option.textContent = barber.name;
-        barberSelect.appendChild(option);
-    });
-    setStepIndicator(1);
-    
-    updateServiceDropdown(SERVICES, null); 
-    loadStateFromLocalStorage();
-
-    // Attach undo listener
-    undoButton.addEventListener('click', undoLastSelection);
-
-
-    // --- MODAL & NAVIGATION (Same) ---
-
-    viewBioBtn.addEventListener('click', () => { /* ... */ });
-    document.querySelector('.close-button').addEventListener('click', () => { /* ... */ });
-    window.addEventListener('click', (event) => { /* ... */ });
 
     function showStep(stepNumber) {
         Object.keys(steps).forEach(key => {
@@ -277,39 +284,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    document.getElementById('next-step-2').addEventListener('click', () => {
-        if (!selectedService || !selectedBarber) return;
-        showStep(2);
-        triggerHapticFeedback(30);
-        validateDateAndGenerateSlots();
-    });
-
-    document.getElementById('prev-step-1').addEventListener('click', () => {
-        showStep(1);
-    });
-
-    document.getElementById('next-step-3').addEventListener('click', () => {
-        if (!selectedSlot) return;
-        
-        const endTime = calculateEndTime(selectedSlot, selectedService.duration);
-        const totalPrice = `$${selectedService.price}`;
-        
-        document.getElementById('summary-barber').textContent = selectedBarber.name;
-        document.getElementById('summary-service').textContent = selectedService.name;
-        document.getElementById('summary-date').textContent = dateInput.value;
-        document.getElementById('summary-time').textContent = selectedSlot;
-        document.getElementById('summary-end-time').textContent = endTime;
-        document.getElementById('summary-total-price').textContent = totalPrice;
-        
-        showStep(3);
-        triggerHapticFeedback(30);
-        saveStateToLocalStorage();
-    });
-
-    document.getElementById('prev-step-2').addEventListener('click', () => {
-        showStep(2);
-    });
-    
     // --- STEP 1 LOGIC (Service & Barber - with Tooltip) ---
 
     function updateServiceDropdown(allServices, selectedBarberSpecialties) {
@@ -366,19 +340,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (selectedBarber) {
             updateServiceDropdown(SERVICES, selectedBarber.specialties);
             filterHint.classList.remove('hidden');
-            announceStatus(`Service list filtered by ${selectedBarber.name}'s specialties.`);
         } else {
             updateServiceDropdown(SERVICES, null);
             filterHint.classList.add('hidden');
-            announceStatus(`Showing all services.`);
         }
     }
 
-    function updateSelections() {
+    function updateSelections(isLoad = false) {
         const serviceId = serviceSelect.value;
         const barberId = barberSelect.value;
         
-        updateBarberSpecialties(barberId);
+        // This is necessary to re-populate the service list based on the new barber
+        updateBarberSpecialties(barberId); 
 
         selectedService = SERVICES.find(s => s.id === serviceId);
         selectedBarber = BARBERS.find(b => b.id === barberId);
@@ -398,47 +371,76 @@ document.addEventListener('DOMContentLoaded', function() {
 
         nextStep2Btn.disabled = !(selectedService && selectedBarber);
         
-        if (currentStep === 1 || currentStep === 2) {
+        // Clear time selection if service/barber changes, unless it's just a state load
+        if (!isLoad && (currentStep === 1 || currentStep === 2)) {
              selectedSlot = null;
-             slotHistory = []; // Clear history on service/barber change
+             slotHistory = []; 
              undoButton.disabled = true;
              undoButton.classList.add('hidden');
              nextStep3Btn.disabled = true;
-             
-             if (selectedBarber && dateInput.value) {
-                 updateDateAvailabilityHint(dateInput.value);
-             } else {
-                 dateHint.textContent = '';
-                 dateHint.className = '';
-             }
-             validateDateAndGenerateSlots();
         }
+             
+        // Update date hint and slot generation dynamically
+        if (selectedBarber && dateInput.value) {
+            updateDateAvailabilityHint(dateInput.value);
+            validateDateAndGenerateSlots();
+        } else {
+            dateHint.textContent = '';
+            dateHint.className = '';
+            validateDateAndGenerateSlots(); // Show placeholder text
+        }
+        
+        updateProgressBar();
         saveStateToLocalStorage();
     }
+    
+    // Barber Modal Logic (Corrected)
+    viewBioBtn.addEventListener('click', () => {
+        if (!selectedBarber) return;
+        document.getElementById('modal-barber-name').textContent = selectedBarber.name;
+        document.getElementById('modal-barber-bio').textContent = selectedBarber.bio;
+        document.getElementById('modal-barber-hours').textContent = `${selectedBarber.shift[0]} - ${selectedBarber.shift[1]}`;
+        barberModal.classList.remove('hidden');
+        barberModal.querySelector('.close-button').focus();
+        announceStatus(`Showing details for ${selectedBarber.name}.`);
+    });
 
-    serviceSelect.addEventListener('change', updateSelections);
-    barberSelect.addEventListener('change', updateSelections);
+    document.querySelector('.close-button').addEventListener('click', () => {
+        barberModal.classList.add('hidden');
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target === barberModal) {
+            barberModal.classList.add('hidden');
+        }
+    });
+
 
     // --- STEP 2 LOGIC (Date & Time) ---
 
-    // NEW FEATURE: Date Availability Hint (Barber Calendar Preview)
+    // NEW FEATURE: Date Availability Hint (Barber Calendar Preview) - CRITICAL FIX
     function checkBarberDayAvailability(dateString, barberId) {
         const barber = BARBERS.find(b => b.id === barberId);
         if (!barber) return true; 
 
+        // Get the shortest duration for any service to check if at least one slot is possible
+        const minDuration = Math.min(...SERVICES.map(s => s.duration)); 
+        if (minDuration === Infinity) return true; // Should not happen with current data
+
         const [startHour, startMinute] = barber.shift[0].split(':').map(Number);
         const [endHour, endMinute] = barber.shift[1].split(':').map(Number);
-        const minDuration = Math.min(...SERVICES.map(s => s.duration)); 
+        
+        // Use a consistent Date object for comparison
+        const checkDate = new Date(dateString);
+        checkDate.setHours(0, 0, 0, 0);
 
-        const startTime = new Date(dateString);
-        startTime.setHours(startHour, startMinute, 0, 0);
-        const endTime = new Date(dateString);
+        let currentTime = new Date(checkDate.getTime());
+        currentTime.setHours(startHour, startMinute, 0, 0);
+
+        const endTime = new Date(checkDate.getTime());
         endTime.setHours(endHour, endMinute, 0, 0);
         
-        const shiftDurationMinutes = (endTime.getTime() - startTime.getTime()) / 60000;
-        if (shiftDurationMinutes < minDuration) return false;
-
-        let currentTime = new Date(startTime.getTime());
+        // Loop through all possible start times for the minimum service duration
         while (currentTime.getTime() + minDuration * 60000 <= endTime.getTime()) {
             const slotStart = ('0' + currentTime.getHours()).slice(-2) + ':' + ('0' + currentTime.getMinutes()).slice(-2);
             
@@ -449,13 +451,15 @@ document.addEventListener('DOMContentLoaded', function() {
             );
 
             if (!isBooked) {
+                // Found at least one available slot
                 return true; 
             }
             
+            // Increment the time by the minimum service duration
             currentTime = new Date(currentTime.getTime() + minDuration * 60000);
         }
 
-        return false; 
+        return false; // No available slots found
     }
 
     function updateDateAvailabilityHint(dateString) {
@@ -470,11 +474,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isAvailable) {
             dateHint.innerHTML = '<i class="fas fa-check-circle"></i>';
             dateHint.className = 'available';
-            dateHint.title = `${selectedBarber.name} is available on this day.`;
+            dateHint.title = `${selectedBarber.name} has availability on this day.`;
         } else {
             dateHint.innerHTML = '<i class="fas fa-times-circle"></i>';
             dateHint.className = 'unavailable';
-            dateHint.title = `${selectedBarber.name} has no availability left on this day.`;
+            dateHint.title = `${selectedBarber.name} is fully booked on this day.`;
         }
     }
     
@@ -488,9 +492,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const bookingDate = new Date(bookingDateString);
-        bookingDate.setHours(0, 0, 0, 0); 
+        // Correct date comparison by setting time to midnight
+        bookingDate.setUTCHours(0, 0, 0, 0); 
 
-        if (bookingDate.getDay() === 6) {
+        if (bookingDate.getDay() === 6) { // Saturday
             dayWarning.classList.remove('hidden');
             timeContainer.innerHTML = '<p class="placeholder-text">No bookings available on Saturdays.</p>';
             nextStep3Btn.disabled = true;
@@ -513,6 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const now = new Date();
         
+        // Use a consistent Date object for slot generation
         let currentTime = new Date(bookingDateString);
         currentTime.setHours(startHour, startMinute, 0, 0);
         
@@ -576,7 +582,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // NEW FEATURE: Conflict Resolver & History Hook
+    // Conflict Resolver & History Hook
     function handleSlotSelection(event) {
         const newSlot = event.currentTarget;
         const time = newSlot.dataset.time;
@@ -595,13 +601,19 @@ document.addEventListener('DOMContentLoaded', function() {
             newSlot.removeEventListener('click', handleSlotSelection);
             newSlot.removeEventListener('keydown', handleSlotSelection);
             newSlot.removeAttribute('tabindex');
-            newSlot.setAttribute('aria-label', `Slot at ${time} just became unavailable.`);
             
             // Haptic/Aural Feedback
             triggerHapticFeedback(300); 
-            announceStatus(`Error: The slot at ${time} just became unavailable.`);
+            announceStatus(`Error: The slot at ${time} just became unavailable. Please choose another.`);
             
-            nextStep3Btn.disabled = !selectedSlot;
+            // If the conflicted slot was the currently selected one (edge case), clear selection
+            if(selectedSlot === time) {
+                 selectedSlot = null;
+                 nextStep3Btn.disabled = true;
+            } else {
+                 nextStep3Btn.disabled = !selectedSlot; // Keep button state based on the remaining selected slot
+            }
+
             return;
         }
 
@@ -619,7 +631,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Trigger Visual Pulse & Haptic Feedback
         newSlot.classList.remove('pulse'); 
-        void newSlot.offsetWidth; 
+        void newSlot.offsetWidth; // Trigger reflow to restart animation
         newSlot.classList.add('pulse');
         triggerHapticFeedback(50); 
         
@@ -628,6 +640,7 @@ document.addEventListener('DOMContentLoaded', function() {
         pushSlotToHistory(time); 
         
         nextStep3Btn.disabled = false;
+        updateProgressBar();
         saveStateToLocalStorage();
         announceStatus(`Time slot selected: ${selectedSlot}`);
     }
@@ -642,6 +655,7 @@ document.addEventListener('DOMContentLoaded', function() {
              updateDateAvailabilityHint(dateInput.value);
         }
         validateDateAndGenerateSlots();
+        updateProgressBar();
         saveStateToLocalStorage();
     });
     
@@ -654,6 +668,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             nameFeedbackIcon.classList.add('hidden');
         }
+        updateProgressBar();
     });
 
     // Client-Side Confirmation Dialog (Pre-Submit Check)
@@ -666,6 +681,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Confirmation is final check before "DB write" (SIMULATED_BOOKINGS update)
         const summary = `
             Booking Details:
             Barber: ${selectedBarber.name}
@@ -680,7 +696,6 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         if (confirm(summary)) {
-            // Trigger haptic feedback for final confirmation
             triggerHapticFeedback(200);
             finalizeBooking();
         } else {
@@ -712,10 +727,40 @@ document.addEventListener('DOMContentLoaded', function() {
             time: selectedSlot
         });
         
-        // Clear local storage and history upon successful booking
         localStorage.removeItem('barberBookingState');
         slotHistory = []; 
         
         announceStatus(`Appointment confirmed for ${name}.`);
     }
+
+    // --- INITIALIZATION ---
+    
+    if (localStorage.getItem('barberAppMode') === 'dark') {
+        body.classList.add('dark-mode');
+        modeToggleBtn.innerHTML = '<i class="fas fa-sun"></i> Light Mode';
+    } else {
+        body.classList.remove('dark-mode');
+        modeToggleBtn.innerHTML = '<i class="fas fa-moon"></i> Dark Mode';
+    }
+    modeToggleBtn.addEventListener('click', toggleMode);
+
+    dateInput.min = getTodayDateString();
+    dateInput.max = getMaxDateString();
+
+    BARBERS.forEach(barber => {
+        const option = document.createElement('option');
+        option.value = barber.id;
+        option.textContent = barber.name;
+        barberSelect.appendChild(option);
+    });
+    
+    // Event listeners
+    serviceSelect.addEventListener('change', updateSelections);
+    barberSelect.addEventListener('change', updateSelections);
+    undoButton.addEventListener('click', undoLastSelection);
+
+
+    setStepIndicator(1);
+    loadStateFromLocalStorage();
+    updateProgressBar(); // Initial progress bar update
 });
