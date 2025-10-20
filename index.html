@@ -29,7 +29,7 @@
             <div class="step" id="step-1" role="tabpanel" aria-labelledby="step-1">
                 <h3>Step 1: Choose Service & Barber</h3>
 
-                <div class="form-group">
+                <div class="form-group service-select-wrapper">
                     <label for="service"><i class="fas fa-scissors"></i> Service:</label>
                     <select id="service" name="service" required aria-describedby="filter-hint">
                         <option value="">Select a service</option>
@@ -57,14 +57,17 @@
             <div class="step hidden" id="step-2" role="tabpanel" aria-labelledby="step-2">
                 <h3>Step 2: Choose Date & Time</h3>
 
-                <div class="form-group">
+                <div class="form-group date-picker-wrapper">
                     <label for="date"><i class="fas fa-calendar-alt"></i> Date:</label>
                     <input type="date" id="date" name="date" required>
+                    <span id="date-availability-hint" aria-live="polite"></span>
                 </div>
                 <p id="day-warning" class="warning-text hidden"><i class="fas fa-exclamation-triangle"></i> Sorry, we are closed on Saturdays.</p>
 
                 <div class="form-group">
-                    <label for="time"><i class="fas fa-clock"></i> Time Slots:</label>
+                    <label for="time"><i class="fas fa-clock"></i> Time Slots:
+                        <button type="button" id="undo-time-select" class="btn-info btn-tiny hidden" disabled title="Undo last time slot selection"><i class="fas fa-undo"></i> Undo</button>
+                    </label>
                     <div id="time-slots-container">
                         <p class="placeholder-text">Please select a date to see available times.</p>
                     </div>
@@ -122,16 +125,6 @@
             <h4 id="modal-barber-name"></h4>
             <p id="modal-barber-bio"></p>
             <p class="modal-hours">Working Hours: <span id="modal-barber-hours"></span></p>
-        </div>
-    </div>
-
-    <div id="timeout-modal" class="modal hidden" role="alertdialog" aria-modal="true" aria-labelledby="timeout-title">
-        <div class="modal-content timeout-content">
-            <h4 id="timeout-title"><i class="fas fa-exclamation-triangle warning-icon"></i> Session Timeout Warning</h4>
-            <p>You have been inactive for too long. Your current booking progress will be cleared in <strong id="timeout-countdown">10</strong> seconds.</p>
-            <p>Click "Continue" to keep your session active.</p>
-            <button id="timeout-continue" class="btn-primary">Continue Booking</button>
-            <button id="timeout-reset" class="btn-secondary">Start Over</button>
         </div>
     </div>
 

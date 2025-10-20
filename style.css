@@ -117,6 +117,9 @@ h2, h3 {
     color: var(--secondary-color);
     margin-bottom: 25px;
 }
+.dark-mode h2, .dark-mode h3 {
+    color: var(--font-color);
+}
 .step {
     border: 1px solid var(--border-color);
     padding: 20px;
@@ -133,8 +136,11 @@ label {
     font-weight: 600;
     color: var(--secondary-color);
 }
+.dark-mode label {
+    color: var(--font-color);
+}
 
-/* Input Focus Ring (New Feature) */
+/* Input Focus Ring (Keyboard Navigation Feature) */
 input[type="text"]:focus,
 input[type="date"]:focus,
 select:focus,
@@ -183,7 +189,43 @@ select {
 
 input:focus, select:focus {
     border-color: var(--primary-color);
-    outline: none; /* Remove default browser outline */
+    outline: none;
+}
+
+/* New Tiny Button Style (for Undo) */
+.btn-tiny {
+    padding: 3px 8px;
+    font-size: 0.8em;
+    margin-left: 15px;
+}
+.form-group label {
+    display: flex;
+    align-items: center;
+}
+.form-group label .btn-tiny {
+    margin-top: -3px; /* Align slightly better */
+}
+
+/* --- Date Availability Hint Styling --- */
+.date-picker-wrapper {
+    position: relative;
+}
+#date-availability-hint {
+    position: absolute;
+    right: 15px;
+    top: 50%; /* Center vertically with input */
+    transform: translateY(10px); 
+    font-size: 1.5em;
+    pointer-events: none;
+}
+.dark-mode #date-availability-hint {
+    color: #f1f1f1;
+}
+#date-availability-hint.available {
+    color: var(--success-color);
+}
+#date-availability-hint.unavailable {
+    color: var(--warning-color);
 }
 
 /* Button Styles */
@@ -249,7 +291,6 @@ button:disabled {
     margin-top: 0;
     color: var(--primary-color);
 }
-/* New Feature: Summary Price Emphasis */
 .summary-total {
     font-size: 1.1em;
     font-weight: 600;
@@ -275,20 +316,44 @@ button:disabled {
     border: 1px solid var(--primary-color);
     border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
+    transition: background-color 0.2s, color 0.2s, box-shadow 0.2s; 
     background-color: var(--content-bg);
     color: var(--font-color);
+    position: relative; 
+    overflow: hidden;
 }
 .time-slot:hover:not(.booked):not(.disabled),
-.time-slot:focus:not(.booked):not(.disabled) { /* Added focus style */
+.time-slot:focus:not(.booked):not(.disabled) { 
     background-color: var(--slot-bg-hover);
 }
 .time-slot.selected {
     background-color: var(--primary-color);
     color: white;
     border-color: var(--primary-color);
-    outline: none; /* remove focus ring from selected state */
+    outline: none;
 }
+
+/* Booking Conflict Shake Animation */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+}
+.time-slot.error-shake {
+    animation: shake 0.4s ease-in-out;
+    border-color: var(--warning-color) !important;
+}
+
+/* Visual Confirmation Pulse Animation */
+@keyframes pulse-confirm {
+    0% { box-shadow: 0 0 0 0 rgba(92, 184, 92, 0.7); } 
+    70% { box-shadow: 0 0 0 10px rgba(92, 184, 92, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(92, 184, 92, 0); }
+}
+.time-slot.pulse {
+    animation: pulse-confirm 0.5s ease-out;
+}
+
 .time-slot.booked {
     background-color: #fdd;
     color: #900;
@@ -297,12 +362,23 @@ button:disabled {
     text-decoration: line-through;
     opacity: 0.7;
 }
+.dark-mode .time-slot.booked {
+    background-color: #382020;
+    color: #f99;
+    border-color: #553333;
+}
+
 .time-slot.disabled {
     background-color: #eee;
     color: #999;
     border-color: #ddd;
     cursor: not-allowed;
     opacity: 0.5;
+}
+.dark-mode .time-slot.disabled {
+    background-color: #1a1a1a;
+    color: #555;
+    border-color: #222;
 }
 
 /* Step Indicator Styling */
@@ -329,8 +405,18 @@ button:disabled {
     border-color: var(--success-color);
     color: var(--success-color);
 }
+.dark-mode .indicator {
+    color: #999;
+}
+.dark-mode .indicator.active {
+    color: var(--primary-color);
+}
+.dark-mode .indicator.complete {
+    color: var(--success-color);
+}
 
-/* Modal Styling (used for Barber Bio and Timeout) */
+
+/* Modal Styling */
 .modal {
     position: fixed;
     z-index: 1000;
@@ -339,7 +425,7 @@ button:disabled {
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgba(0, 0, 0, 0.6); /* Darker backdrop for timeout */
+    background-color: rgba(0, 0, 0, 0.6); 
     display: flex;
     justify-content: center;
     align-items: center;
@@ -356,15 +442,6 @@ button:disabled {
     text-align: center;
 }
 
-/* Timeout specific styles */
-.timeout-content {
-    border: 3px solid var(--warning-color);
-}
-.warning-icon {
-    color: var(--warning-color);
-    margin-right: 10px;
-}
-
 .close-button {
     color: #aaa;
     float: right;
@@ -379,6 +456,10 @@ button:disabled {
     color: #000;
     text-decoration: none;
     cursor: pointer;
+}
+.dark-mode .close-button:hover,
+.dark-mode .close-button:focus {
+    color: #fff;
 }
 .modal-hours {
     font-style: italic;
@@ -411,6 +492,39 @@ button:disabled {
     color: var(--success-color);
     margin-bottom: 10px;
 }
+
+/* Tooltip Styling */
+select#service option[data-unavailable] {
+    color: #999;
+    font-style: italic;
+    cursor: not-allowed;
+    background-color: #eee;
+}
+.dark-mode select#service option[data-unavailable] {
+    color: #777;
+    background-color: #222;
+}
+
+#unavailable-tooltip {
+    position: fixed; 
+    z-index: 10;
+    max-width: 250px;
+    padding: 8px 12px;
+    background-color: var(--secondary-color);
+    color: white;
+    border-radius: 5px;
+    font-size: 0.9em;
+    pointer-events: none; 
+    transition: opacity 0.2s, transform 0.2s;
+    opacity: 0;
+    transform: translate(0, 0); 
+    box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
+}
+#unavailable-tooltip.visible {
+    opacity: 1;
+    transform: translate(0, -10px); 
+}
+
 
 .hidden {
     display: none !important;
